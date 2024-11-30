@@ -5,13 +5,13 @@ clear;
 Nt = 4;%numero de antenas transmitindo
 Nr = 4;%numero de antenas recebendo
 
-tx_simb  = 2  * randi([0 1], Nt, 1) - 1; %vetor de simbolos baseados na quant. antenas
-H = randn(Nr, Nt) + 1j * randn(Nr,Nt); %geraçao de matriz H aleatoria complexa
+tx_simb  = 2  * randi([0 1], Nt, 1) - 1; %vetor 
+H = randn(Nr, Nt) + 1j * randn(Nr,Nt);
 
-H_pseudo = pinv(H);% pseudo-inversa da H
+H_pseudo = pinv(H);
 
-detect_antes = H * tx_simb; %simbolos recebidos
-detect_depois = H_pseudo * detect_antes; %simbolos dectados e achados pela tecnica Zero-Forcing
+detect_antes = H * tx_simb;
+detect_depois = H_pseudo * detect_antes;
 
 
 disp('Simbolos transmitidos:');
