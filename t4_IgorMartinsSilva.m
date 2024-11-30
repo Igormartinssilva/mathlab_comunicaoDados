@@ -5,7 +5,7 @@ clear;
 Nt = 4;%numero de antenas transmitindo
 Nr = 4;%numero de antenas recebendo
 
-tx_simb  = 2  * randi([0 1], Nt, 1) - 1; %vetor de simbolos baseados na quant. antenas
+tx_simb  = complex(2  * randi([0 1], Nt, 1) - 1); %vetor de simbolos baseados na quant. antenas
 H = randn(Nr, Nt) + 1j * randn(Nr,Nt); %geraçao de matriz H aleatoria complexa
 
 H_pseudo = pinv(H);% pseudo-inversa da H
