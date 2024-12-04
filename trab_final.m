@@ -24,7 +24,9 @@ fer_qam = zeros(3, length(Eb_N0_lin));
 
 
 
-% Variáveis QPSK ---------------------------------------------------------
+% QPSK ---------------------------------------------------------
+
+%Variáveis
 Eb = sqrt(2); % Energia média para quadratura
 NP = Eb ./ (Eb_N0_lin); %vetor de potências do ruído
 NA = sqrt(NP); %vetor de amplitudes do ruído
@@ -47,21 +49,19 @@ for i = 1:2:num_b-1
     cont = cont + 1;
 end
 
-SMod = SI + 1i .* SQ;
-
-
+SMod = SI + 1i .* SQ; %Sinal resultante, modulado e complexo
 
 for i = 1:length(Eb_N0_lin)
     N = NA(i)*complex(randn(1, num_b/2), randn(1, num_b/2))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
     r = SMod + N ; % vetor recebido
     cont = 1;
-    for j = 1:2:num_b-1
-        if (real(r(cont)) > 0)
+    for j = 1:2:num_b-1  %demodulação doQPSK após somar ruído
+        if (real(r(cont)) > 0) % valor do bit definido pelo quadrante em que o sinal Q+I se encontra
             mensagemDemod(j) = 1;
         else
             mensagemDemod(j) = 0;
         end
-        if (complex(r(cont)) > 0)
+        if (imag(r(cont)) > 0)
             mensagemDemod(j+1) = 1;
         else
             mensagemDemod(j+1) = 0;
