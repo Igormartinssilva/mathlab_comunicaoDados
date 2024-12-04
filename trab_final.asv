@@ -14,7 +14,6 @@ Eb_N0_dB = -2:1:12; % Faixa de Eb/N0 em dB
 Eb_N0_lin = 10 .^ (Eb_N0_dB / 10); % Faixa de Eb/N0 em linearizada
 num_frames = 100; % Número de quadros simulados por Eb/N0
 mensagem = randi(2,1,num_b)-1;
-mensagemDemod = zeros(1, num_b);
 
 %declaração das matrizes e vetores
 ber_qpsk = zeros(3, length(Eb_N0_lin));
@@ -49,32 +48,32 @@ end
 
 SMod = SI + 1i .* SQ;
 
-
+cont = 1;
+for i = 1:2:num_b-1
+    if (real(SMod(cont)) > 0)
+        S(cont) = 1;
+    else
+        SI(cont) = -1;
+    end
+    if (mensagem(i+1) == 1)
+        SQ(cont) = 1;
+    else
+        SQ(cont) = -1;
+    end
+    cont = cont + 1;
+end
 
 for i = 1:length(Eb_N0_lin)
     N = NA(i)*complex(randn(1, num_b/2), randn(1, num_b/2))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
     r = SMod + N ; % vetor recebido
-    cont = 1;
-    for j = 1:2:num_b-1
-        if (real(r(cont)) > 0)
-            mensagemDemod(j) = 1;
-        else
-            mensagemDemod(j) = 0;
-        end
-        if (complex(r(cont)) > 0)
-            mensagemDemod(j+1) = 1;
-        else
-            mensagemDemod(j+1) = 0;
-        end
-        cont = cont + 1;
-    end
-    ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / num_b; % contagem de erros e cálculo do BER
+    demod = sign(real(r)); % recupera a informação (sinal da parte real)
+    ber_qpsk(1, i) = sum(mensagem ~= demod) / num_b; % contagem de erros e cálculo do BER
 end
 
-semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', 'LineWidth', 2, 'MarkerSize', 10);
-xlabel('Eb/N0 (dB)');
-ylabel('BER');
-legend('QPSK sem Cod');
+% semilogy(Eb_N0_dB, ber, 'r', 'LineWidth', 2, 'MarkerSize', 10);
+% xlabel('Eb/N0 (dB)');
+% ylabel('BER');
+% legend('Simulado QPSK sem Cod');
 
 
 
