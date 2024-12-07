@@ -2,17 +2,20 @@
 %GRUPO 4 - IGOR MARTINS SILVA (00333069) E ARTUR RUIZ DE SOUZA (00334954)
 close all;
 clear;
-
+clc;
 %declaração de variáveis
 mod_QPSK = 4; 
 mod_QAM = 64;
-n = 1296;
-num_b = n;
+n = 1296; %comprimento do código
+num_b = n; 
 R = 2/3;
+k = R*n; %bits de mensagem
+bits_pari = n - k; %bits de paridade
 frame_size = 2300 * 8;
 Eb_N0_dB = -2:1:12; % Faixa de Eb/N0 em dB
 Eb_N0_lin = 10 .^ (Eb_N0_dB / 10); % Faixa de Eb/N0 em linearizada
 num_frames = 100; % Número de quadros simulados por Eb/N0
+
 mensagem = randi(2,1,num_b)-1;
 mensagemDemod = zeros(1, num_b);
 
@@ -21,7 +24,6 @@ ber_qpsk = zeros(3, length(Eb_N0_lin));
 fer_qpsk = zeros(3, length(Eb_N0_lin));
 ber_qam = zeros(3, length(Eb_N0_lin));
 fer_qam = zeros(3, length(Eb_N0_lin));
-
 
 
 % QPSK ---------------------------------------------------------
@@ -55,7 +57,7 @@ for i = 1:length(Eb_N0_lin)
     N = NA(i)*complex(randn(1, num_b/2), randn(1, num_b/2))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
     r = SMod + N ; % vetor recebido
     cont = 1;
-    for j = 1:2:num_b-1  %demodulação doQPSK após somar ruído
+    for j = 1:2:num_b-1  %demodulação do QPSK após somar ruído
         if (real(r(cont)) > 0) % valor do bit definido pelo quadrante em que o sinal Q+I se encontra
             mensagemDemod(j) = 1;
         else
@@ -71,18 +73,26 @@ for i = 1:length(Eb_N0_lin)
     ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / num_b; % contagem de erros e cálculo do BER
 end
 
-semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', 'LineWidth', 2, 'MarkerSize', 10);
-xlabel('Eb/N0 (dB)');
-ylabel('BER');
-legend('QPSK sem Cod');
+%semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', 'LineWidth', 2, 'MarkerSize', 10);
+%xlabel('Eb/N0 (dB)');
+%ylabel('BER');
+%legend('QPSK sem Cod');
 
+%--------------------------------------LDPC encoder------------------------
 
+% Criar matriz H na forma [P | I]
+P = randi([0 1], bits_pari, k); % Parte aleatória (paridade)
+I = eye(bits_pari);             % Matriz identidade
+H = [P I];              % Combinação de P e I
 
+% Gerar bits de mensagem aleatórios
+message_bits = randi([0 1], k, 1);
 
+% Codificar
+encoded_bits = ldpc_encode(message_bits, H, n, k, bits_pari);
 
-
-
-
+% Verificar dimensões
+%disp(['Bits codificados: ', num2str(length(encoded_bits))]); % Deve ser igual a n
 
 
 
