@@ -95,7 +95,21 @@ encoded_bits = ldpc_encode(message_bits, H, n, k, bits_pari);
 %disp(['Bits codificados: ', num2str(length(encoded_bits))]); % Deve ser igual a n
 
 
+% Mensagem aleatória
+%input_bits = randi([0 1], 120, 1); % 120 bits (20 símbolos para 64-QAM)
 
+% Modulação
+qam_symbols = manual_qammod(message_bits,mod_QAM);
+
+% Visualizar constelação
+% Exibir apenas os pontos da constelação
+figure;
+scatter(real(qam_symbols), imag(qam_symbols), 'filled');
+xlabel('Eixo I (In-Phase)');
+ylabel('Eixo Q (Quadrature)');
+title('Constelação 64-QAM');
+grid on;
+axis([-8 8 -8 8]); % Ajustar os limites para visualização correta
 
 
 
