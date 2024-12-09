@@ -16,8 +16,9 @@ Eb_N0_dB = -2:1:12; % Faixa de Eb/N0 em dB
 Eb_N0_lin = 10 .^ (Eb_N0_dB / 10); % Faixa de Eb/N0 em linearizada
 num_frames = 100; % Número de quadros simulados por Eb/N0
 
-mensagem = randi(2,1,num_b)-1;
-mensagemDemod = zeros(1, num_b);
+mensagem = logical(randi(2,1,k)-1);
+mensagemDemod = zeros(1, k);
+mensagemDemodDecod = zeros(1, k);
 
 %declaração das matrizes e vetores
 ber_qpsk = zeros(3, length(Eb_N0_lin));
@@ -28,62 +29,41 @@ fer_qam = zeros(3, length(Eb_N0_lin));
 
 % QPSK ---------------------------------------------------------
 
-%Variáveis
-Eb = sqrt(2); % Energia média para quadratura
-NP = Eb ./ (Eb_N0_lin); %vetor de potências do ruído
-NA = sqrt(NP); %vetor de amplitudes do ruído
-SI = zeros(1, num_b/2); 
-SQ = zeros(1, num_b/2);
-
-% Modulação da mensagem em QPSK, construindo vetores para Q e I
-cont = 1; % contador para evitar buracos nos vetores Q e I
-for i = 1:2:num_b-1
-    if (mensagem(i) == 1)
-        SI(cont) = 1;
-    else
-        SI(cont) = -1;
-    end
-    if (mensagem(i+1) == 1)
-        SQ(cont) = 1;
-    else
-        SQ(cont) = -1;
-    end
-    cont = cont + 1;
-end
-
-SMod = SI + 1i .* SQ; %Sinal resultante, modulado e complexo
-
-for i = 1:length(Eb_N0_lin)
-    N = NA(i)*complex(randn(1, num_b/2), randn(1, num_b/2))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
-    r = SMod + N ; % vetor recebido
-    cont = 1;
-    for j = 1:2:num_b-1  %demodulação do QPSK após somar ruído
-        if (real(r(cont)) > 0) % valor do bit definido pelo quadrante em que o sinal Q+I se encontra
-            mensagemDemod(j) = 1;
-        else
-            mensagemDemod(j) = 0;
-        end
-        if (imag(r(cont)) > 0)
-            mensagemDemod(j+1) = 1;
-        else
-            mensagemDemod(j+1) = 0;
-        end
-        cont = cont + 1;
-    end
-    ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / num_b; % contagem de erros e cálculo do BER
-end
-
-%semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', 'LineWidth', 2, 'MarkerSize', 10);
-%xlabel('Eb/N0 (dB)');
-%ylabel('BER');
-%legend('QPSK sem Cod');
-
-%--------------------------------------LDPC encoder------------------------
-
 % Criar matriz H na forma [P | I]
 P = randi([0 1], bits_pari, k); % Parte aleatória (paridade)
 I = eye(bits_pari);             % Matriz identidade
 H = [P I];              % Combinação de P e I
+
+ldpcEncoder = comm.LDPCEncoder(dvbs2ldpc(R));
+ldpcDecoder = comm.LDPCDecoder('ParityCheckMatrix',dvbs2ldpc(R), 'DecisionMethod','Hard decision');
+%Variáveis
+Eb = sqrt(2); % Energia média para quadratura
+NP = Eb ./ (Eb_N0_lin); %vetor de potências do ruído
+NA = sqrt(NP); %vetor de amplitudes do ruído
+
+mensagemCod = step(ldpcEncoder, mensagem);
+SModCod = manual_qpskmod(mensagemCod); 
+SMod = manual_qpskmod(mensagem); %Sinal resultante, modulado e complexo
+
+for i = 1:length(Eb_N0_lin)
+    N = NA(i)*complex(randn(1, k/2), randn(1, k/2))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
+    r = SMod + N ; % vetor recebido
+    mensagemDemod = manual_qpskdemod(r);
+    mensagemDemodDecod = ldpcDecoder(manual_qpskdemod(r));
+    length(mensagem)
+    length(mensagemDemod)
+    ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para QPSK sem codificação
+    ber_qpsk(2, i) = sum(mensagem ~= mensagemDemodDecod) / k; % contagem de erros e cálculo do BER QPSK com codificação Hard
+end
+
+figure(1);
+semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', 'LineWidth', 2, 'MarkerSize', 10, Eb_N0_dB, ber_qpsk(2,:), 'g', 'LineWidth', 2, 'MarkerSize', 10);
+xlabel('Eb/N0 (dB)');
+ylabel('BER');
+legend('QPSK sem Cod');
+
+%--------------------------------------LDPC encoder------------------------
+
 
 % Gerar bits de mensagem aleatórios
 message_bits = randi([0 1], k, 1);
@@ -103,7 +83,7 @@ qam_symbols = manual_qammod(message_bits,mod_QAM);
 
 % Visualizar constelação
 % Exibir apenas os pontos da constelação
-figure;
+figure(2);
 scatter(real(qam_symbols), imag(qam_symbols), 'filled');
 xlabel('Eixo I (In-Phase)');
 ylabel('Eixo Q (Quadrature)');
