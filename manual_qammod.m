@@ -22,7 +22,7 @@ function qam_symbols = manual_qammod(input_bits, mod_QAM)
     sqrt_M = sqrt(mod_QAM); % Tamanho da grade
     I = repmat(-(sqrt_M-1):2:(sqrt_M-1), sqrt_M, 1); % Eixo I (in-phase)
     Q = repmat((sqrt_M-1):-2:-(sqrt_M-1), sqrt_M, 1)'; % Eixo Q (quadrature)
-    constelation = I(:) + 1j * Q(:); % Constelação no plano complexo
+    constelation = I(:) + 1j * Q(:); % Constelação no plano complexo. (:) coloca todo mundo como um vetor coluna
     
     qam_symbols = constelation;
     
