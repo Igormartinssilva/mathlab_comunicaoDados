@@ -6,7 +6,7 @@ clc;
 %declaração de variáveis
 mod_QPSK = 4; 
 mod_QAM = 64;
-tamanhoMensagem = 4;
+tamanhoMensagem = 3;
 n = 1296 * 50 * tamanhoMensagem; %comprimento do código
 R = 2/3;
 k = R*n; %bits de mensagem
@@ -14,7 +14,7 @@ bits_pari = n - k; %bits de paridade
 frame_size = 2300 * 8;
 Eb_N0_dB = -2:1:12; % Faixa de Eb/N0 em dB
 Eb_N0_lin = 10 .^ (Eb_N0_dB / 10); % Faixa de Eb/N0 em linearizada
-num_frames = 100; % Número de quadros simulados por Eb/N0
+num_frames = n/frame_size; % Número de quadros simulados por Eb/N0
 
 %Gerar informação
 mensagem = randi(2,k,1)-1;
@@ -124,6 +124,25 @@ for i = 1:length(Eb_N0_lin)
         end
     end
     
+    mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
+    
+    for j = 1: num_frames
+        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemod((j-1)*num_frames+1:j*num_frames) > 0)
+            fer_qpsk(1, i) = fer_qpsk(1, i) + 1;
+        end
+        
+        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodHard((j-1)*num_frames+1:j*num_frames) > 0)
+            fer_qpsk(2, i) = fer_qpsk(1, i) + 1;
+        end
+        
+        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodSoft((j-1)*num_frames+1:j*num_frames) > 0)
+            fer_qpsk(3, i) = fer_qpsk(1, i) + 1;
+        end
+    end
+    
+    fer_qpsk(1, i) = fer_qpsk(1, i)/num_frames;
+    fer_qpsk(2, i) = fer_qpsk(1, i)/num_frames;
+    fer_qpsk(3, i) = fer_qpsk(1, i)/num_frames;
     ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para QPSK sem codificação
     ber_qpsk(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER QPSK com codificação Hard
     ber_qpsk(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER QPSK com codificação Soft
@@ -132,7 +151,7 @@ end
 
 
 
-% %--------------------Cálculo BER para 64-QAM------------------
+% %--------------------Cálculo BER para 64-QAM------------------        
 Eb = mean(abs(const)); % Energia média para 64 - QAM
 NP = Eb ./ (Eb_N0_lin); %vetor de potências do ruído
 NA = sqrt(NP); %vetor de amplitudes do ruído
@@ -162,21 +181,30 @@ for i = 1:length(Eb_N0_lin)
         end
     end
   
+    mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
+    
+    for j = 1: num_frames
+        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemod((j-1)*num_frames+1:j*num_frames) > 0)
+            fer_qam(1, i) = fer_qam(1, i) + 1;
+        end
+        
+        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodHard((j-1)*num_frames+1:j*num_frames) > 0)
+            fer_qam(2, i) = fer_qam(1, i) + 1;
+        end
+        
+        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodSoft((j-1)*num_frames+1:j*num_frames) > 0)
+            fer_qam(3, i) = fer_qam(1, i) + 1;
+        end
+    end
+    
+    fer_qam(1, i) = fer_qam(1, i)/num_frames;
+    fer_qam(2, i) = fer_qam(1, i)/num_frames;
+    fer_qam(3, i) = fer_qam(1, i)/num_frames;
     
     ber_qam(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para 64-QAM sem codificação
     ber_qam(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Hard
     ber_qam(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Soft
 end
-
-% figure(1);
-% semilogy(Eb_N0_dB, ber_qam(1,:), 'r', Eb_N0_dB, ber_qam(2,:), 'g', Eb_N0_dB, ber_qam(3,:), 'b');
-% xlabel('Eb/N0 (dB)');
-% ylabel('BER');
-% legend('64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
-
-
-
-
 
 figure(1);
 semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', Eb_N0_dB, ber_qpsk(2,:), 'g', Eb_N0_dB, ber_qpsk(3,:), 'b', Eb_N0_dB, ber_qam(1,:), 'y', Eb_N0_dB, ber_qam(2,:), 'black', Eb_N0_dB, ber_qam(3,:), 'magenta');
@@ -184,6 +212,11 @@ xlabel('Eb/N0 (dB)');
 ylabel('BER');
 legend('QPSK sem Cod', 'QPSK LDPC Hard', 'QPSK LDPC Soft','64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
 
+figure(2);
+semilogy(Eb_N0_dB, fer_qpsk(1,:), 'r', Eb_N0_dB, fer_qpsk(2,:), 'g', Eb_N0_dB, fer_qpsk(3,:), 'b', Eb_N0_dB, fer_qam(1,:), 'y', Eb_N0_dB, fer_qam(2,:), 'black', Eb_N0_dB, fer_qam(3,:), 'magenta');
+xlabel('Eb/N0 (dB)');
+ylabel('FER');
+legend('QPSK sem Cod', 'QPSK LDPC Hard', 'QPSK LDPC Soft','64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
 
 
 
