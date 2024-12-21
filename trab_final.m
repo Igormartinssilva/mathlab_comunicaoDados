@@ -100,7 +100,8 @@ for i = 1:length(Eb_N0_lin)
     rSemCod = qpsk_Mod + NSemCod; % vetor recebido
     rCod = qpsk_Mod_Cod + NCod;
     mensagemDemod = qpskdemod.step(rSemCod);
-    mensagemDemodDecodHard = not(ldpcDecoderHard.step(qpskdemodHard.step(rCod)));
+    auxHard = 4-8.*qpskdemodHard.step(rCod);
+    mensagemDemodDecodHard = ldpcDecoderHard.step(auxHard);
     
     mensagemDemodDecodSoft = ldpcDecoderSoft.step(qpskdemodSoft.step(rCod));
     
@@ -129,10 +130,10 @@ for i = 1:length(Eb_N0_lin)
     
     mensagemDemod = QAMdemod.step(rSemCod);
     
-    auxHard = QAMdemodHard.step(rCod);
+    auxHard = 4-8.*QAMdemodHard.step(rCod);
     auxSoft = QAMdemodSoft.step(rCod);
     
-    mensagemDemodDecodHard = not(ldpcDecoderHard.step(auxHard));
+    mensagemDemodDecodHard = ldpcDecoderHard.step(auxHard);
     mensagemDemodDecodSoft = ldpcDecoderSoft.step(auxSoft);
   
     
