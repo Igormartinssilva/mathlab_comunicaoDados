@@ -29,8 +29,21 @@ fer_qpsk = zeros(3, length(Eb_N0_lin));
 ber_qam = zeros(3, length(Eb_N0_lin));
 fer_qam = zeros(3, length(Eb_N0_lin));
 
+%--------------------Matriz de paridade----------------------
+PariMatrix = ldpcMatrizDeParidade(1296*50,R);
+
+%----Fazer Gráfico de densidade, bom gráfico, talvez usar no futuro-----
+
+% figure(1);
+% imagesc(PariMatrix(1:1000, 1:1000)); % Exibe as primeiras 50 linhas e colunas
+% colormap(gray);         % Colormap em tons de cinza
+% colorbar;               % Adiciona uma barra de cores
+% title('Trecho da matriz H (50x50)');
+% xlabel('Colunas');
+% ylabel('Linhas');
 %--------------------Codificação LDPC------------------------
-PariMatrix = dvbs2ldpc(R);
+
+%teste = dvbs2ldpc(R);
 ldpcEncoder = comm.LDPCEncoder(PariMatrix);
 ldpcDecoderHard = comm.LDPCDecoder('ParityCheckMatrix',PariMatrix, 'DecisionMethod','Hard decision');
 ldpcDecoderSoft = comm.LDPCDecoder('ParityCheckMatrix',PariMatrix, 'DecisionMethod','Soft decision');
@@ -125,17 +138,17 @@ for i = 1:length(Eb_N0_lin)
     end
     
     mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
-    
-    for j = 1: num_frames
-        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemod((j-1)*num_frames+1:j*num_frames) > 0)
+    index = floor(num_frames);
+    for j = 1: index
+        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemod((j-1)*index+1:j*index) > 0)
             fer_qpsk(1, i) = fer_qpsk(1, i) + 1;
         end
         
-        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodHard((j-1)*num_frames+1:j*num_frames) > 0)
+        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodHard((j-1)*index+1:j*index) > 0)
             fer_qpsk(2, i) = fer_qpsk(1, i) + 1;
         end
         
-        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodSoft((j-1)*num_frames+1:j*num_frames) > 0)
+        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodSoft((j-1)*index+1:j*index) > 0)
             fer_qpsk(3, i) = fer_qpsk(1, i) + 1;
         end
     end
@@ -182,17 +195,17 @@ for i = 1:length(Eb_N0_lin)
     end
   
     mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
-    
-    for j = 1: num_frames
-        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemod((j-1)*num_frames+1:j*num_frames) > 0)
+    index = floor(num_frames);
+    for j = 1: index
+        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemod((j-1)*index+1:j*index) > 0)
             fer_qam(1, i) = fer_qam(1, i) + 1;
         end
         
-        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodHard((j-1)*num_frames+1:j*num_frames) > 0)
+        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodHard((j-1)*index+1:j*index) > 0)
             fer_qam(2, i) = fer_qam(1, i) + 1;
         end
         
-        if sum(mensagem((j-1)*num_frames+1:j*num_frames)~= mensagemDemodDecodSoft((j-1)*num_frames+1:j*num_frames) > 0)
+        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodSoft((j-1)*index+1:j*index) > 0)
             fer_qam(3, i) = fer_qam(1, i) + 1;
         end
     end
@@ -206,23 +219,29 @@ for i = 1:length(Eb_N0_lin)
     ber_qam(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Soft
 end
 
+
 figure(1);
-semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', Eb_N0_dB, ber_qpsk(2,:), 'g', Eb_N0_dB, ber_qpsk(3,:), 'b', Eb_N0_dB, ber_qam(1,:), 'y', Eb_N0_dB, ber_qam(2,:), 'black', Eb_N0_dB, ber_qam(3,:), 'magenta');
+semilogy(Eb_N0_dB, ber_qpsk(1,:), 'r', 'LineWidth', 2); hold on;
+semilogy(Eb_N0_dB, ber_qpsk(2,:), 'g', 'LineWidth', 2);
+semilogy(Eb_N0_dB, ber_qpsk(3,:), 'b', 'LineWidth', 2);
+semilogy(Eb_N0_dB, ber_qam(1,:), 'c', 'LineWidth', 2);
+semilogy(Eb_N0_dB, ber_qam(2,:), 'k', 'LineWidth', 2); 
+semilogy(Eb_N0_dB, ber_qam(3,:), 'm', 'LineWidth', 2); 
+hold off;
 xlabel('Eb/N0 (dB)');
 ylabel('BER');
-legend('QPSK sem Cod', 'QPSK LDPC Hard', 'QPSK LDPC Soft','64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
+legend('QPSK sem Cod', 'QPSK LDPC Hard', 'QPSK LDPC Soft', ...
+       '64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
 
 figure(2);
-semilogy(Eb_N0_dB, fer_qpsk(1,:), 'r', Eb_N0_dB, fer_qpsk(2,:), 'g', Eb_N0_dB, fer_qpsk(3,:), 'b', Eb_N0_dB, fer_qam(1,:), 'y', Eb_N0_dB, fer_qam(2,:), 'black', Eb_N0_dB, fer_qam(3,:), 'magenta');
+semilogy(Eb_N0_dB, fer_qpsk(1,:), 'r', 'LineWidth', 2); hold on;
+semilogy(Eb_N0_dB, fer_qpsk(2,:), 'g', 'LineWidth', 2);
+semilogy(Eb_N0_dB, fer_qpsk(3,:), 'b', 'LineWidth', 2);
+semilogy(Eb_N0_dB, fer_qam(1,:), 'c', 'LineWidth', 2);
+semilogy(Eb_N0_dB, fer_qam(2,:), 'k', 'LineWidth', 2); 
+semilogy(Eb_N0_dB, fer_qam(3,:), 'm', 'LineWidth', 2); 
+hold off;
 xlabel('Eb/N0 (dB)');
 ylabel('FER');
-legend('QPSK sem Cod', 'QPSK LDPC Hard', 'QPSK LDPC Soft','64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
-
-
-
-
-
-
-
-
-
+legend('QPSK sem Cod', 'QPSK LDPC Hard', 'QPSK LDPC Soft', ...
+       '64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
