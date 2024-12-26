@@ -7,7 +7,8 @@ clc;
 mod_QPSK = 4; 
 mod_QAM = 64;
 tamanhoMensagem = 3;
-n = 1296 * 50 * tamanhoMensagem; %comprimento do código
+N = 1296;
+n = N * 50 * tamanhoMensagem; %comprimento do código
 R = 2/3;
 k = R*n; %bits de mensagem
 bits_pari = n - k; %bits de paridade
@@ -30,7 +31,7 @@ ber_qam = zeros(3, length(Eb_N0_lin));
 fer_qam = zeros(3, length(Eb_N0_lin));
 
 %--------------------Matriz de paridade----------------------
-PariMatrix = ldpcMatrizDeParidade(1296*50,R);
+PariMatrix = ldpcMatrizDeParidade(N,R);
 
 %----Fazer Gráfico de densidade, bom gráfico, talvez usar no futuro-----
 
@@ -48,11 +49,11 @@ ldpcEncoder = comm.LDPCEncoder(PariMatrix);
 ldpcDecoderHard = comm.LDPCDecoder('ParityCheckMatrix',PariMatrix, 'DecisionMethod','Hard decision');
 ldpcDecoderSoft = comm.LDPCDecoder('ParityCheckMatrix',PariMatrix, 'DecisionMethod','Soft decision');
 
-for j = 1: k/43200
+for j = 1: k/(N*R)
     if j==1
-         mensagemCod =  ldpcEncoder.step(mensagem((j-1)*43200+1:j*43200));
+         mensagemCod =  ldpcEncoder.step(mensagem((j-1)*(N*R)+1:j*(N*R)));
     else
-        mensagemCod = cat(1, mensagemCod, ldpcEncoder.step(mensagem((j-1)*43200+1:j*43200)));
+        mensagemCod = cat(1, mensagemCod, ldpcEncoder.step(mensagem((j-1)*(N*R)+1:j*(N*R))));
     end
 end
 
@@ -127,38 +128,25 @@ for i = 1:length(Eb_N0_lin)
     auxHard = 4-8.*qpskdemodHard.step(rCod);
     auxSoft = qpskdemodSoft.step(rCod);
     
-    for j = 1: n/64800
+    for j = 1: n/N
         if j==1
-            mensagemDemodDecodHard =  ldpcDecoderHard.step(auxHard((j-1)*64800+1:j*64800));
-            mensagemDemodDecodSoft = ldpcDecoderSoft.step(auxSoft((j-1)*64800+1:j*64800));
+            mensagemDemodDecodHard =  ldpcDecoderHard.step(auxHard((j-1)*N+1:j*N));
+            mensagemDemodDecodSoft = ldpcDecoderSoft.step(auxSoft((j-1)*N+1:j*N));
         else
-            mensagemDemodDecodHard = cat(1, mensagemDemodDecodHard, ldpcDecoderHard.step(auxHard((j-1)*64800+1:j*64800)));
-            mensagemDemodDecodSoft = cat(1, mensagemDemodDecodSoft, ldpcDecoderSoft.step(auxSoft((j-1)*64800+1:j*64800)));
+            mensagemDemodDecodHard = cat(1, mensagemDemodDecodHard, ldpcDecoderHard.step(auxHard((j-1)*N+1:j*N)));
+            mensagemDemodDecodSoft = cat(1, mensagemDemodDecodSoft, ldpcDecoderSoft.step(auxSoft((j-1)*N+1:j*N)));
         end
     end
     
     mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
-    index = floor(num_frames);
-    for j = 1: index
-        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemod((j-1)*index+1:j*index) > 0)
-            fer_qpsk(1, i) = fer_qpsk(1, i) + 1;
-        end
-        
-        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodHard((j-1)*index+1:j*index) > 0)
-            fer_qpsk(2, i) = fer_qpsk(1, i) + 1;
-        end
-        
-        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodSoft((j-1)*index+1:j*index) > 0)
-            fer_qpsk(3, i) = fer_qpsk(1, i) + 1;
-        end
-    end
     
-    fer_qpsk(1, i) = fer_qpsk(1, i)/num_frames;
-    fer_qpsk(2, i) = fer_qpsk(1, i)/num_frames;
-    fer_qpsk(3, i) = fer_qpsk(1, i)/num_frames;
+
     ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para QPSK sem codificação
     ber_qpsk(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER QPSK com codificação Hard
     ber_qpsk(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER QPSK com codificação Soft
+    fer_qpsk(1, i) = 1-(1-ber_qpsk(1,i))^num_frames;
+    fer_qpsk(2, i) = 1-(1-ber_qpsk(2,i))^num_frames;
+    fer_qpsk(3, i) = 1-(1-ber_qpsk(3,i))^num_frames;
 end
 
 
@@ -184,13 +172,13 @@ for i = 1:length(Eb_N0_lin)
     auxHard = 4-8.*QAMdemodHard.step(rCod);
     auxSoft = QAMdemodSoft.step(rCod);
     
-    for j = 1: n/64800
+    for j = 1: n/N
         if j==1
-            mensagemDemodDecodHard =  ldpcDecoderHard.step(auxHard((j-1)*64800+1:j*64800));
-            mensagemDemodDecodSoft = ldpcDecoderSoft.step(auxSoft((j-1)*64800+1:j*64800));
+            mensagemDemodDecodHard =  ldpcDecoderHard.step(auxHard((j-1)*N+1:j*N));
+            mensagemDemodDecodSoft = ldpcDecoderSoft.step(auxSoft((j-1)*N+1:j*N));
         else
-            mensagemDemodDecodHard = cat(1, mensagemDemodDecodHard, ldpcDecoderHard.step(auxHard((j-1)*64800+1:j*64800)));
-            mensagemDemodDecodSoft = cat(1, mensagemDemodDecodSoft, ldpcDecoderSoft.step(auxSoft((j-1)*64800+1:j*64800)));
+            mensagemDemodDecodHard = cat(1, mensagemDemodDecodHard, ldpcDecoderHard.step(auxHard((j-1)*N+1:j*N)));
+            mensagemDemodDecodSoft = cat(1, mensagemDemodDecodSoft, ldpcDecoderSoft.step(auxSoft((j-1)*N+1:j*N)));
         end
     end
   
