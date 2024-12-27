@@ -6,10 +6,11 @@ clc;
 %declaração de variáveis
 mod_QPSK = 4; 
 mod_QAM = 64;
-tamanhoMensagem = 3;
-N = 1296;
-n = N * 50 * tamanhoMensagem; %comprimento do código
-R = 2/3;
+tamanhoMensagem = 1;
+N = 1296; %comprimento do código
+n = N * 50 * tamanhoMensagem;  %tamanho da mensagem com código
+R = 2/3; %razão de código
+K = (N*R); %K sem código
 k = R*n; %bits de mensagem
 bits_pari = n - k; %bits de paridade
 frame_size = 2300 * 8;
@@ -20,9 +21,7 @@ num_frames = n/frame_size; % Número de quadros simulados por Eb/N0
 %Gerar informação
 mensagem = randi(2,k,1)-1;
 mensagemQAM = 0:(mod_QAM-1);
-mensagemDemod = zeros(k, 1);
 mensagemCod = zeros(n, 1);
-mensagemDemodDecod = zeros(k, 1);
 
 %declaração das matrizes e vetores
 ber_qpsk = zeros(3, length(Eb_N0_lin));
@@ -43,44 +42,46 @@ PariMatrix = ldpcMatrizDeParidade(N,R);
 % xlabel('Colunas');
 % ylabel('Linhas');
 %--------------------Codificação LDPC------------------------
-
-%teste = dvbs2ldpc(R);
+%objeto codificador
 ldpcEncoder = comm.LDPCEncoder(PariMatrix);
-ldpcDecoderHard = comm.LDPCDecoder('ParityCheckMatrix',PariMatrix, 'DecisionMethod','Hard decision');
+%objeto decodificador hard
+ldpcDecoderHard = comm.LDPCDecoder('ParityCheckMatrix',PariMatrix, 'DecisionMethod','Hard decision'); 
+%objeto decodificador soft
 ldpcDecoderSoft = comm.LDPCDecoder('ParityCheckMatrix',PariMatrix, 'DecisionMethod','Soft decision');
 
-for j = 1: k/(N*R)
+%codificação da mensagem em blocos de tamanho K por conta das restrições da
+%biblioteca COMM.ldpc
+for j = 1: k/K
     if j==1
-         mensagemCod =  ldpcEncoder.step(mensagem((j-1)*(N*R)+1:j*(N*R)));
+         mensagemCod =  ldpcEncoder.step(mensagem((j-1)*K+1:j*K));
     else
-        mensagemCod = cat(1, mensagemCod, ldpcEncoder.step(mensagem((j-1)*(N*R)+1:j*(N*R))));
+        mensagemCod = cat(1, mensagemCod, ldpcEncoder.step(mensagem((j-1)*K+1:j*K)));
     end
 end
 
 %--------------------Modulação 64_qam------------------------
-% symbols = bi2de(reshape(mensagem, log2(mod_QAM), []).', 'left-msb');
+%Criação de uma constelação padrão 64QAM para modulação da mensagem
 qamMod = qammod(mensagemQAM, mod_QAM, 0 ,'Gray');
 const = qamMod/ sqrt(mean(abs(qamMod).^2)); % Normalização para potência média unitária
-
+QAMmod = comm.GeneralQAMModulator(const);
 
 symbols_Cod = bi2de(reshape(mensagemCod, log2(mod_QAM), []).', 'left-msb');
 qamModCod = qammod(symbols_Cod, mod_QAM, 0 ,'Gray');
 qamModCod = qamModCod / sqrt(mean(abs(qamModCod).^2)); % Normalização para potência média unitária
+% qamModCod = QAMmod.step(mensagemCod);
+% qamModCod = qamModCod / sqrt(mean(abs(qamModCod).^2)); 
 
 symbols = bi2de(reshape(mensagem, log2(mod_QAM), []).', 'left-msb');
 qamMod = qammod(symbols, mod_QAM, 0 ,'Gray');
 qamMod = qamMod / sqrt(mean(abs(qamMod).^2)); % Normalização para potência média unitária
 
-QAMmod = comm.GeneralQAMModulator(const);
+% qamMod = QAMmod.step(mensagem);
+% qamMod = qamMod / sqrt(mean(abs(qamMod).^2)); 
+
+%----------------Objetos de Demodulação 64_qam-----------------
 QAMdemod = comm.GeneralQAMDemodulator(const, 'BitOutput',true,'DecisionMethod','Hard decision');
 QAMdemodHard = comm.GeneralQAMDemodulator(const, 'BitOutput',true,'DecisionMethod','Hard decision');
 QAMdemodSoft = comm.GeneralQAMDemodulator(const, 'BitOutput',true,'DecisionMethod','Approximate log-likelihood ratio');
-
-% qamMod = QAMmod.step(mensagem);
-% qamModCod = QAMmod.step(mensagemCod);
-% Plot da constelação QPSK
-% scatterplot(qamMod);
-% title('Constelação QPSK');
 
 %se precisar fazer dar nos pontos 1,3,5 e 7 multiplicar por sqrt(42)
 
@@ -121,8 +122,8 @@ mensagemDemodDecodSoft = zeros(k,1);
 for i = 1:length(Eb_N0_lin)
     NSemCod = NA(i)*complex(randn(length(qpsk_Mod), 1), randn(length(qpsk_Mod), 1))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
     NCod = NACod(i)*complex(randn(length(qpsk_Mod_Cod), 1), randn(length(qpsk_Mod_Cod), 1))*sqrt(0.5);
-    rSemCod = qpsk_Mod + NSemCod; % vetor recebido
-    rCod = qpsk_Mod_Cod + NCod;
+    rSemCod = qpsk_Mod + NSemCod; % vetor recebido sem código
+    rCod = qpsk_Mod_Cod + NCod; % vetor recebido codificado
     mensagemDemod = qpskdemod.step(rSemCod);
     
     auxHard = 4-8.*qpskdemodHard.step(rCod);
@@ -144,9 +145,9 @@ for i = 1:length(Eb_N0_lin)
     ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para QPSK sem codificação
     ber_qpsk(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER QPSK com codificação Hard
     ber_qpsk(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER QPSK com codificação Soft
-    fer_qpsk(1, i) = 1-(1-ber_qpsk(1,i))^num_frames;
-    fer_qpsk(2, i) = 1-(1-ber_qpsk(2,i))^num_frames;
-    fer_qpsk(3, i) = 1-(1-ber_qpsk(3,i))^num_frames;
+    fer_qpsk(1, i) = 1-(1-ber_qpsk(1,i))^frame_size;
+    fer_qpsk(2, i) = 1-(1-ber_qpsk(2,i))^frame_size;
+    fer_qpsk(3, i) = 1-(1-ber_qpsk(3,i))^frame_size;
 end
 
 
@@ -163,11 +164,11 @@ NACod = sqrt(NPCod);
 
 for i = 1:length(Eb_N0_lin)
     NSemCod = NA(i)*complex(randn(length(qamMod), 1), randn(length(qamMod), 1))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
-    NCod = NACod(i)*complex(randn(length(qamModCod), 1), randn(length(qamModCod), 1))*sqrt(0.5)*3/4;
+    NCod = NACod(i)*complex(randn(length(qamModCod), 1), randn(length(qamModCod), 1))*sqrt(0.5);
     rSemCod = qamMod + NSemCod; % vetor recebido
     rCod = qamModCod + NCod;
     
-    mensagemDemod = QAMdemod.step(rSemCod);
+    mensagemDemod = step(QAMdemod,rSemCod);
     
     auxHard = 4-8.*QAMdemodHard.step(rCod);
     auxSoft = QAMdemodSoft.step(rCod);
@@ -183,28 +184,16 @@ for i = 1:length(Eb_N0_lin)
     end
   
     mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
-    index = floor(num_frames);
-    for j = 1: index
-        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemod((j-1)*index+1:j*index) > 0)
-            fer_qam(1, i) = fer_qam(1, i) + 1;
-        end
-        
-        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodHard((j-1)*index+1:j*index) > 0)
-            fer_qam(2, i) = fer_qam(1, i) + 1;
-        end
-        
-        if sum(mensagem((j-1)*index+1:j*index)~= mensagemDemodDecodSoft((j-1)*index+1:j*index) > 0)
-            fer_qam(3, i) = fer_qam(1, i) + 1;
-        end
-    end
     
-    fer_qam(1, i) = fer_qam(1, i)/num_frames;
-    fer_qam(2, i) = fer_qam(1, i)/num_frames;
-    fer_qam(3, i) = fer_qam(1, i)/num_frames;
+    
     
     ber_qam(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para 64-QAM sem codificação
     ber_qam(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Hard
     ber_qam(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Soft
+    
+    fer_qam(1, i) = 1-(1-ber_qam(1,i))^frame_size;
+    fer_qam(2, i) = 1-(1-ber_qam(2,i))^frame_size;
+    fer_qam(3, i) = 1-(1-ber_qam(3,i))^frame_size;
 end
 
 
