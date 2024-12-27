@@ -145,9 +145,9 @@ for i = 1:length(Eb_N0_lin)
     ber_qpsk(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para QPSK sem codificação
     ber_qpsk(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER QPSK com codificação Hard
     ber_qpsk(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER QPSK com codificação Soft
-    fer_qpsk(1, i) = 1-(1-ber_qpsk(1,i))^frame_size;
-    fer_qpsk(2, i) = 1-(1-ber_qpsk(2,i))^frame_size;
-    fer_qpsk(3, i) = 1-(1-ber_qpsk(3,i))^frame_size;
+    fer_qpsk(1, i) = 1-((1-ber_qpsk(1,i))^frame_size);
+    fer_qpsk(2, i) = 1-((1-ber_qpsk(2,i))^frame_size);
+    fer_qpsk(3, i) = 1-((1-ber_qpsk(3,i))^frame_size);
 end
 
 
