@@ -160,7 +160,7 @@ NA = sqrt(NP); %vetor de amplitudes do ruído
 
 EbCod = Eb*R; % Valores considerando a razão de código
 NPCod = EbCod ./ (Eb_N0_lin);
-NACod = (NPCod);
+NACod = sqrt(NPCod);
 
 for i = 1:length(Eb_N0_lin)
     NSemCod = NA(i)*complex(randn(length(qamMod), 1), randn(length(qamMod), 1))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
