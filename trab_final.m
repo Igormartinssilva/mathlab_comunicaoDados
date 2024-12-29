@@ -6,9 +6,9 @@ clc;
 %declaração de variáveis
 mod_QPSK = 4; 
 mod_QAM = 64;
-tamanhoMensagem = 10;
+multTamMensagem = 50 * 2;
 N = 1296; %comprimento do código
-n = N * 50 * tamanhoMensagem;  %tamanho da mensagem com código
+n = N * multTamMensagem;  %tamanho da mensagem com código
 R = 2/3; %razão de código
 K = (N*R); %K sem código
 k = R*n; %bits de mensagem
@@ -154,41 +154,42 @@ end
 
 
 % %--------------------Cálculo BER para 64-QAM------------------        
-Eb = mean(abs(const))/log2(mod_QAM); % Energia média para 64 - QAM
-NP = Eb ./ (Eb_N0_lin); %vetor de potências do ruído
-NA = sqrt(NP); %vetor de amplitudes do ruído
+EbQAM = mean(abs(const))/log2(mod_QAM); % Energia média para 64 - QAM
+NPQAM = EbQAM ./ (Eb_N0_lin); %vetor de potências do ruído
+NAQAM = sqrt(NPQAM); %vetor de amplitudes do ruído
 
-EbCod = Eb/R; % Valores considerando a razão de código
-NPCod = EbCod ./ (Eb_N0_lin);
-NACod = sqrt(NPCod);
-
+EbCodQAM = EbQAM/R; % Valores considerando a razão de código
+NPCodQAM = EbCodQAM ./ (Eb_N0_lin);
+NACodQAM = sqrt(NPCodQAM);
+mensagemDemodDecodHardQAM = zeros(k,1);
+mensagemDemodDecodSoftQAM = zeros(k,1);
 for i = 1:length(Eb_N0_lin)
-    NSemCod = NA(i)*complex(randn(length(qamMod), 1), randn(length(qamMod), 1))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
-    NCod = NACod(i)*complex(randn(length(qamModCod), 1), randn(length(qamModCod), 1))*sqrt(0.5);
-    rSemCod = qamMod + NSemCod; % vetor recebido
-    rCod = qamModCod + NCod;
+    NSemCodQAM = NAQAM(i)*complex(randn(length(qamMod), 1), randn(length(qamMod), 1))*sqrt(0.5); %vetor de ruído complexo com desvio padrão igual a uma posição do vetor NA
+    NCodQAM = NACodQAM(i)*complex(randn(length(qamModCod), 1), randn(length(qamModCod), 1))*sqrt(0.5);
+    rSemCodQAM = qamMod + NSemCodQAM; % vetor recebido
+    rCodQAM = qamModCod + NCodQAM;
     
-    mensagemDemod = step(QAMdemod,rSemCod);
+    mensagemDemodQAM = step(QAMdemod,rSemCodQAM);
     
-    auxHard = 4-8.*QAMdemodHard.step(rCod);
-    auxSoft = QAMdemodSoft.step(rCod);
+    auxHardQAM = 4-8.*QAMdemodHard.step(rCodQAM);
+    auxSoftQAM = QAMdemodSoft.step(rCodQAM);
     
     for j = 1: n/N
         if j==1
-            mensagemDemodDecodHard =  ldpcDecoderHard.step(auxHard((j-1)*N+1:j*N));
-            mensagemDemodDecodSoft = ldpcDecoderSoft.step(auxSoft((j-1)*N+1:j*N));
+            mensagemDemodDecodHardQAM =  ldpcDecoderHard.step(auxHardQAM((j-1)*N+1:j*N));
+            mensagemDemodDecodSoftQAM = ldpcDecoderSoft.step(auxSoftQAM((j-1)*N+1:j*N));
         else
-            mensagemDemodDecodHard = cat(1, mensagemDemodDecodHard, ldpcDecoderHard.step(auxHard((j-1)*N+1:j*N)));
-            mensagemDemodDecodSoft = cat(1, mensagemDemodDecodSoft, ldpcDecoderSoft.step(auxSoft((j-1)*N+1:j*N)));
+            mensagemDemodDecodHardQAM = cat(1, mensagemDemodDecodHardQAM, ldpcDecoderHard.step(auxHardQAM((j-1)*N+1:j*N)));
+            mensagemDemodDecodSoftQAM = cat(1, mensagemDemodDecodSoftQAM, ldpcDecoderSoft.step(auxSoftQAM((j-1)*N+1:j*N)));
         end
     end
-    mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
+    mensagemDemodDecodSoftQAM = (sign(mensagemDemodDecodSoftQAM)-1)/-2;
     
     
     
-    ber_qam(1, i) = sum(mensagem ~= mensagemDemod) / k; % contagem de erros e cálculo do BER para 64-QAM sem codificação
-    ber_qam(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Hard
-    ber_qam(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Soft
+    ber_qam(1, i) = sum(mensagem ~= mensagemDemodQAM) / k; % contagem de erros e cálculo do BER para 64-QAM sem codificação
+    ber_qam(2, i) = sum(mensagem ~= mensagemDemodDecodHardQAM) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Hard
+    ber_qam(3, i) = sum(mensagem ~= mensagemDemodDecodSoftQAM) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Soft
     
     fer_qam(1, i) = 1-((1-ber_qam(1,i))^frame_size);
     fer_qam(2, i) = 1-((1-ber_qam(2,i))^frame_size);
