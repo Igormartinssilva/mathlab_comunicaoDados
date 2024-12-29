@@ -6,7 +6,7 @@ clc;
 %declaração de variáveis
 mod_QPSK = 4; 
 mod_QAM = 64;
-tamanhoMensagem = 1;
+tamanhoMensagem = 10;
 N = 1296; %comprimento do código
 n = N * 50 * tamanhoMensagem;  %tamanho da mensagem com código
 R = 2/3; %razão de código
@@ -31,7 +31,7 @@ fer_qam = zeros(3, length(Eb_N0_lin));
 
 %--------------------Matriz de paridade----------------------
 PariMatrix = ldpcMatrizDeParidade(N,R);
-
+% PariMatrix = dvbs2ldpc(R);
 %----Fazer Gráfico de densidade, bom gráfico, talvez usar no futuro-----
 
 % figure(1);
@@ -110,11 +110,11 @@ qpsk_Mod = qpskmod.step(mensagem);
 qpsk_Mod_Cod = qpskmod.step(mensagemCod);
 
 %--------------------Cálculo BER para QPSK------------------
-Eb = 1; % Energia média para QPSK
+Eb = 1/log2(mod_QPSK); % Energia média para QPSK
 NP = Eb ./ (Eb_N0_lin); %vetor de potências do ruído
 NA = sqrt(NP); %vetor de amplitudes do ruído
 
-EbCod = Eb*R; % Valores considerando a razão de código
+EbCod = Eb/R; % Valores considerando a razão de código
 NPCod = EbCod ./ (Eb_N0_lin);
 NACod = sqrt(NPCod);
 mensagemDemodDecodHard = zeros(k,1);
@@ -154,11 +154,11 @@ end
 
 
 % %--------------------Cálculo BER para 64-QAM------------------        
-Eb = mean(abs(const)); % Energia média para 64 - QAM
+Eb = mean(abs(const))/log2(mod_QAM); % Energia média para 64 - QAM
 NP = Eb ./ (Eb_N0_lin); %vetor de potências do ruído
 NA = sqrt(NP); %vetor de amplitudes do ruído
 
-EbCod = Eb*R; % Valores considerando a razão de código
+EbCod = Eb/R; % Valores considerando a razão de código
 NPCod = EbCod ./ (Eb_N0_lin);
 NACod = sqrt(NPCod);
 
@@ -182,7 +182,6 @@ for i = 1:length(Eb_N0_lin)
             mensagemDemodDecodSoft = cat(1, mensagemDemodDecodSoft, ldpcDecoderSoft.step(auxSoft((j-1)*N+1:j*N)));
         end
     end
-  
     mensagemDemodDecodSoft = (sign(mensagemDemodDecodSoft)-1)/-2;
     
     
@@ -191,9 +190,9 @@ for i = 1:length(Eb_N0_lin)
     ber_qam(2, i) = sum(mensagem ~= mensagemDemodDecodHard) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Hard
     ber_qam(3, i) = sum(mensagem ~= mensagemDemodDecodSoft) / k; % contagem de erros e cálculo do BER 64-QAM com codificação Soft
     
-    fer_qam(1, i) = 1-(1-ber_qam(1,i))^frame_size;
-    fer_qam(2, i) = 1-(1-ber_qam(2,i))^frame_size;
-    fer_qam(3, i) = 1-(1-ber_qam(3,i))^frame_size;
+    fer_qam(1, i) = 1-((1-ber_qam(1,i))^frame_size);
+    fer_qam(2, i) = 1-((1-ber_qam(2,i))^frame_size);
+    fer_qam(3, i) = 1-((1-ber_qam(3,i))^frame_size);
 end
 
 
