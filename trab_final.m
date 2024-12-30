@@ -30,17 +30,18 @@ ber_qam = zeros(3, length(Eb_N0_lin));
 fer_qam = zeros(3, length(Eb_N0_lin));
 
 %--------------------Matriz de paridade----------------------
-PariMatrix = ldpcMatrizDeParidade(N,R);
+% PariMatrix = ldpcMatrizDeParidade(N,R);
+ PariMatrix = qc_matrix_1296(N,R);
 % PariMatrix = dvbs2ldpc(R);
 %----Fazer Gráfico de densidade, bom gráfico, talvez usar no futuro-----
 
-% figure(1);
-% imagesc(PariMatrix(1:1000, 1:1000)); % Exibe as primeiras 50 linhas e colunas
-% colormap(gray);         % Colormap em tons de cinza
-% colorbar;               % Adiciona uma barra de cores
-% title('Trecho da matriz H (50x50)');
-% xlabel('Colunas');
-% ylabel('Linhas');
+figure(1);
+imagesc(PariMatrix(1:432, 1:1296)); % Exibe as primeiras 50 linhas e colunas
+colormap(gray);         % Colormap em tons de cinza
+colorbar;               % Adiciona uma barra de cores
+title('Trecho da matriz H (50x50)');
+xlabel('Colunas');
+ylabel('Linhas');
 %--------------------Codificação LDPC------------------------
 %objeto codificador
 ldpcEncoder = comm.LDPCEncoder(PariMatrix);
