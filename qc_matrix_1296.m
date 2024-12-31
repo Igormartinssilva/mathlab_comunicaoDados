@@ -15,6 +15,7 @@ function H = qc_matrix_1296(n,r)
     % Inicializa a matriz de paridade
     H = sparse(m, n);
  % Inicializa a matriz de deslocamento
+ %int H_1296_2_3[8][24] = Matriz deslocamento para 1296 e razao 2/3
     shiftMatrix = [
         39, 31, 22, 43, -1, 40,  4, -1, 11, -1, -1, 50, -1, -1, -1,  6,  1,  0, -1, -1, -1, -1, -1, -1;
         25, 52, 41,  2,  6, -1, 14, -1, 34, -1, -1, -1, 24, -1, 37, -1, -1,  0,  0, -1, -1, -1, -1, -1;
