@@ -16,7 +16,7 @@ bits_pari = n - k; %bits de paridade
 frame_size = 2300 * 8;
 num_frames = k/K; % Número de quadros simulados por Eb/N0
 
-Eb_N0_dB = -2:1:25; % Faixa de Eb/N0 em dB
+Eb_N0_dB = -2:1:19; % Faixa de Eb/N0 em dB
 Eb_N0_lin = 10 .^ (Eb_N0_dB / 10); % Faixa de Eb/N0 em linearizada
 
 %Gerar informação
@@ -31,7 +31,7 @@ ber_qam = zeros(3, length(Eb_N0_lin));
 fer_qam = zeros(3, length(Eb_N0_lin));
 
 %--------------------Matriz de paridade----------------------
- PariMatrix = qc_matrix_1296(N,R);
+PariMatrix = qc_matrix_1296(N,R);
 % PariMatrix = dvbs2ldpc(R);
 %--------------------Codificação LDPC------------------------
 %objeto codificador
@@ -100,6 +100,8 @@ for i = 1:length(Eb_N0_lin)
     rSemCod = qpsk_Mod + NSemCod; % vetor recebido sem código
     rCod = qpsk_Mod_Cod + NCod; % vetor recebido codificado
 
+    qpskdemodSoft.Variance = NPCod(i); %define o parametro variancia no ruido
+
     mensagemDemod = qpskdemod.step(rSemCod);
     auxHard = 4-8.*qpskdemodHard.step(rCod);
     auxSoft = qpskdemodSoft.step(rCod);
@@ -126,7 +128,7 @@ for i = 1:length(Eb_N0_lin)
     fer_qpsk(3, i) = 1-((1-ber_qpsk(3,i))^frame_size);
 end
 
-% %--------------------Cálculo BER para 64-QAM------------------        
+%--------------------Cálculo BER para 64-QAM------------------        
 EbQAM = mean(abs(const))/log2(mod_QAM); % Energia média para 64 - QAM
 NPQAM = EbQAM ./ (Eb_N0_lin); %vetor de potências do ruido
 NAQAM = sqrt(NPQAM); %vetor de amplitudes do ruído
@@ -141,6 +143,8 @@ for i = 1:length(Eb_N0_lin)
     NCodQAM = NACodQAM(i)*complex(randn(length(qamModCod), 1), randn(length(qamModCod), 1))*sqrt(0.5);
     rSemCodQAM = qamMod + NSemCodQAM; % vetor recebido
     rCodQAM = qamModCod + NCodQAM;
+    
+    QAMdemodSoft.Variance = NPCodQAM(i); %define o parametro variancia no ruido
     
     mensagemDemodQAM = step(QAMdemod,rSemCodQAM);    
     auxHardQAM = 4-8.*QAMdemodHard.step(rCodQAM);
@@ -186,7 +190,7 @@ title('Comparação BER de cada tipo de decodificação LDPC');
 figure(2);
 semilogy(Eb_N0_dB, fer_qpsk(1,:), 'r', 'LineWidth', 3); hold on;
 semilogy(Eb_N0_dB, fer_qpsk(2,:), 'g', 'LineWidth', 4);
-semilogy(Eb_N0_dB, fer_qpsk(3,:), 'b', 'LineWidth', 3);
+semilogy(Eb_N0_dB, fer_qpsk(3,:), 'b', 'LineWidth', 5);
 hold off;
 xlabel('Eb/N0 (dB)');
 ylabel('FER');
@@ -196,19 +200,9 @@ title('Comparação Frame Error Rate QPSK');
 figure(3);
 semilogy(Eb_N0_dB, fer_qam(1,:), 'c', 'LineWidth', 3);hold on;
 semilogy(Eb_N0_dB, fer_qam(2,:), 'k', 'LineWidth', 4); 
-semilogy(Eb_N0_dB, fer_qam(3,:), 'm', 'LineWidth', 3); 
+semilogy(Eb_N0_dB, fer_qam(3,:), 'm', 'LineWidth', 5); 
 hold off;
 xlabel('Eb/N0 (dB)');
 ylabel('FER');
 legend('64-QAM sem Cod', '64-QAM LDPC Hard', '64-QAM LDPC Soft');
 title('Comparação Frame Error Rate QAM');
-
-
-figure(4);
-semilogy(Eb_N0_dB, fer_qpsk(2,:), 'g', 'LineWidth', 3);hold on;
-semilogy(Eb_N0_dB, fer_qam(2,:), 'k', 'LineWidth', 4); 
-hold off;
-xlabel('Eb/N0 (dB)');
-ylabel('FER');
-legend('QPSK LDPC Hard', '64-QAM LDPC Hard');
-title('Comparação Frame Error Rate HARD');

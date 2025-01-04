@@ -41,10 +41,8 @@ function H = qc_matrix_1296(n,r)
         % Regenera as últimas colunas se não forem de posto completo
         for i = 1:nb
             for j = mb-nb+1:mb
-                if rand < 0.9   % Probabilidade de ter um bloco não-zero (ajuste conforme necessário)
                     block = circshift(eye(z), randi([0 z-1]));
-                    lastColumns((i-1)*z+1:i*z, (j-1)*z+1:j*z) = block;
-                end
+                    lastColumns((i-1)*z+1:i*z, (j-1)*z+1:j*z) = block;                
             end
         end
     end
